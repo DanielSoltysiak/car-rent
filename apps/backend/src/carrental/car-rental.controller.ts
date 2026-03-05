@@ -1,12 +1,12 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import type { CarRentalService, CreateReservationDto } from './car-rental.service';
+import * as carRentalService from './car-rental.service';
 
 @Controller('car-rental')
 export class CarRentalController {
-  constructor(private readonly carRentalService: CarRentalService) { }
+  constructor(private readonly carRentalService: carRentalService.CarRentalService) { }
 
   @Post('reservations')
-  createReservation(@Body() body: CreateReservationDto) {
+  createReservation(@Body() body: carRentalService.CreateReservationDto) {
     const reservation = this.carRentalService.reserve(body);
 
     return {
