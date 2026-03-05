@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { Car, CarType } from '../shared/car';
+import { Car, CarType } from '@car-rent/shared';
 import { Reservation } from './reservation';
 
 export class CarRentalSystem {
@@ -20,15 +20,15 @@ export class CarRentalSystem {
     }
   }
 
-  getAvailableCarCount(type: CarType, startDate: Date, days: number): number {
+  getAvailableCarCount(type: CarType, startDate: Date, endDate: Date): number {
     const cars = this.carsByType.get(type) ?? [];
 
-    return cars.filter((car) => this.isCarAvailable(car, startDate, days)).length;
+    return cars.filter((car) => this.isCarAvailable(car, startDate, endDate)).length;
   }
 
-  reserve(type: CarType, startDate: Date, days: number): Reservation {
-    if (days <= 0) {
-      throw new Error('Number of days must be positive');
+  reserve(type: CarType, startDate: Date, endDate: Date): Reservation {
+    if (endDate <= startDate) {
+      throw new Error('Reservation end date must be after start date');
     }
 
     const cars = this.carsByType.get(type) ?? [];
@@ -38,8 +38,7 @@ export class CarRentalSystem {
     }
 
     for (const car of cars) {
-      if (this.isCarAvailable(car, startDate, days)) {
-        const endDate = this.calculateEndDate(startDate, days);
+      if (this.isCarAvailable(car, startDate, endDate)) {
         const reservation = new Reservation(randomUUID(), car, startDate, endDate);
         const carReservations = this.reservationsByCarId.get(car.id);
 
@@ -56,26 +55,18 @@ export class CarRentalSystem {
     throw new Error(`No available ${type} cars for the requested period`);
   }
 
-  private isCarAvailable(car: Car, startDate: Date, days: number): boolean {
+  private isCarAvailable(car: Car, startDate: Date, endDate: Date): boolean {
     const reservations = this.reservationsByCarId.get(car.id) ?? [];
-    const requestedEndDate = this.calculateEndDate(startDate, days);
 
     return reservations.every(
       (reservation) =>
         !this.doRangesOverlap(
           startDate,
-          requestedEndDate,
+          endDate,
           reservation.startDate,
           reservation.endDate,
         ),
     );
-  }
-
-  private calculateEndDate(startDate: Date, days: number): Date {
-    const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + days);
-
-    return endDate;
   }
 
   private doRangesOverlap(

@@ -1,4 +1,4 @@
-import { Car } from '../shared/car';
+import { Car } from '@car-rent/shared';
 
 export class Reservation {
   constructor(
