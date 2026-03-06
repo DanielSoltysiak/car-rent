@@ -26,7 +26,7 @@ export class CarRentalSystem {
     return cars.filter((car) => this.isCarAvailable(car, startDate, endDate)).length;
   }
 
-  reserve(type: CarType, startDate: Date, endDate: Date): Reservation {
+  reserve(type: CarType, startDate: Date, endDate: Date): Reservation | null {
     if (endDate <= startDate) {
       throw new Error('Reservation end date must be after start date');
     }
@@ -34,7 +34,7 @@ export class CarRentalSystem {
     const cars = this.carsByType.get(type) ?? [];
 
     if (cars.length === 0) {
-      throw new Error(`No cars of type ${type} in the fleet`);
+      return null;
     }
 
     for (const car of cars) {
@@ -52,7 +52,7 @@ export class CarRentalSystem {
       }
     }
 
-    throw new Error(`No available ${type} cars for the requested period`);
+    return null;
   }
 
   private isCarAvailable(car: Car, startDate: Date, endDate: Date): boolean {

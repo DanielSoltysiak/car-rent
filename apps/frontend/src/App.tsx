@@ -1,8 +1,9 @@
-import { FormEvent, useState } from 'react';
+import { type SubmitEvent, useState } from 'react';
+import { CarTypeSelect, DateInput } from './reservation';
+import { CarType } from '@car-rent/shared';
 
-type CarType = 'Sedan' | 'SUV' | 'Van';
-
-interface ReservationResponse {
+interface ReservationSuccessResponse {
+  success: true;
   id: string;
   carId: string;
   carType: CarType;
@@ -10,15 +11,41 @@ interface ReservationResponse {
   endDate: string;
 }
 
+interface ReservationFailureResponse {
+  success: false;
+  reason: 'NO_AVAILABLE_CAR';
+}
+
+type ReservationResponse = ReservationSuccessResponse | ReservationFailureResponse;
+
+const fetchReservation = async (type: CarType, startDate: string, endDate: string) => {
+  const res = await fetch('http://localhost:3000/car-rental/reservations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type,
+      startDate: new Date(startDate).toISOString(),
+      endDate: new Date(endDate).toISOString(),
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(text || 'Nie udało się utworzyć rezerwacji.');
+  }
+
+  return (await res.json()) as ReservationResponse;
+};
+
 function App() {
-  const [type, setType] = useState<CarType>('Sedan');
+  const [type, setType] = useState<CarType>(CarType.Sedan);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [reservation, setReservation] = useState<ReservationResponse | null>(null);
+  const [reservation, setReservation] = useState<ReservationSuccessResponse | null>(null);
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setReservation(null);
@@ -30,22 +57,13 @@ function App() {
 
     setLoading(true);
     try {
-      const res = await fetch('http://localhost:3000/car-rental/reservations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type,
-          startDate: new Date(startDate).toISOString(),
-          endDate: new Date(endDate).toISOString(),
-        }),
-      });
+      const data = await fetchReservation(type, startDate, endDate);
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Nie udało się utworzyć rezerwacji.');
+      if (!data.success) {
+        setError('Brak dostępnych samochodów dla wybranego typu i terminu.');
+        return;
       }
 
-      const data: ReservationResponse = await res.json();
       setReservation(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Wystąpił nieznany błąd.');
@@ -63,48 +81,12 @@ function App() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="type">
-              Typ samochodu
-            </label>
-            <select
-              id="type"
-              value={type}
-              onChange={(e) => setType(e.target.value as CarType)}
-              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            >
-              <option value="Sedan">Sedan</option>
-              <option value="SUV">SUV</option>
-              <option value="Van">Van</option>
-            </select>
-          </div>
+          <CarTypeSelect type={type} onChange={setType} />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="startDate">
-                Data rozpoczęcia
-              </label>
-              <input
-                id="startDate"
-                type="datetime-local"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+            <DateInput label="Data rozpoczęcia" value={startDate} onChange={setStartDate} />
 
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="endDate">
-                Data zakończenia
-              </label>
-              <input
-                id="endDate"
-                type="datetime-local"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+            <DateInput label="Data zakończenia" value={endDate} onChange={setEndDate} />
           </div>
 
           {error && (

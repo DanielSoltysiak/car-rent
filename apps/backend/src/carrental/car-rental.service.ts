@@ -25,7 +25,7 @@ export class CarRentalService {
     this.system = new CarRentalSystem(cars);
   }
 
-  reserve(dto: CreateReservationDto): Reservation {
+  reserve(dto: CreateReservationDto): Reservation | null {
     const start = new Date(dto.startDate);
     const end = new Date(dto.endDate);
 

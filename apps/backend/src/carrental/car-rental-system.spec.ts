@@ -37,6 +37,10 @@ describe('CarRentalSystem', () => {
       createDate('2025-01-03T10:00:00.000Z'),
     );
 
+    if (!reservation) {
+      throw new Error('Expected reservation to be created');
+    }
+
     expect(reservation.id).toBeDefined();
     expect(reservation.car.type).toBe(CarType.Sedan);
     expect(reservation.startDate).toEqual(baseDate);
@@ -60,14 +64,14 @@ describe('CarRentalSystem', () => {
       createDate('2025-01-03T10:00:00.000Z'),
     );
 
-    // Trzecia rezerwacja na ten sam okres powinna się nie udać
-    expect(() =>
-      system.reserve(
-        CarType.Sedan,
-        baseDate,
-        createDate('2025-01-03T10:00:00.000Z'),
-      ),
-    ).toThrow('No available Sedan cars for the requested period');
+    // Trzecia rezerwacja na ten sam okres powinna zwrócić null (brak dostępnych aut)
+    const third = system.reserve(
+      CarType.Sedan,
+      baseDate,
+      createDate('2025-01-03T10:00:00.000Z'),
+    );
+
+    expect(third).toBeNull();
   });
 
   it('allows back-to-back reservations without overlap', () => {
@@ -75,7 +79,10 @@ describe('CarRentalSystem', () => {
 
     const firstEnd = createDate('2025-01-03T10:00:00.000Z');
 
-    system.reserve(CarType.Sedan, baseDate, firstEnd);
+    const first = system.reserve(CarType.Sedan, baseDate, firstEnd);
+    if (!first) {
+      throw new Error('Expected reservation to be created');
+    }
 
     // Nowa rezerwacja zaczyna się dokładnie w momencie zakończenia poprzedniej
     expect(() =>

@@ -9,7 +9,15 @@ export class CarRentalController {
   createReservation(@Body() body: carRentalService.CreateReservationDto) {
     const reservation = this.carRentalService.reserve(body);
 
+    if (!reservation) {
+      return {
+        success: false as const,
+        reason: 'NO_AVAILABLE_CAR' as const,
+      };
+    }
+
     return {
+      success: true as const,
       id: reservation.id,
       carId: reservation.car.id,
       carType: reservation.car.type,
